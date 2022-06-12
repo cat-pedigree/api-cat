@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use Exception;
 use App\Models\Cats;
+use App\Models\Album;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
-use App\Models\Album;
+use Google\Cloud\Storage\StorageClient;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -83,7 +84,7 @@ class CatController extends Controller
                 'ear_shape' => ['required', 'string', 'max:255'],
                 'weight' => ['required','regex:/^[0-9]+(\.[0-9][0-9]?)?$/'],
                 'age' => ['required', 'integer'],
-                'photo' => ['required','image','mimes:jpeg,png,jpg,svg|max:2048'],
+                'photo' => ['required','image','mimes:jpeg,png,jpg,svg'],
                 'isWhite' => ['required', 'integer'],
                 'story' => ['required'],
             ]);
@@ -96,10 +97,21 @@ class CatController extends Controller
                 ], 'Failed to add data', 422);
             } else {
                 if ($request->photo && $request->photo->isValid()) {
-                    $slug = Str::slug($request->user()->username);
-                    $fileName = 'photo-' . $slug . '-' . time() . '.' . $request->photo->extension();
-                    $request->photo->storeAs('public/cats', $fileName);
-                    $path = "cats/$fileName";
+                    $googleConfigFile = file_get_contents(config_path('flowing-silo-350506-e0fbc96d1dcf.json'));
+                    $storage = new StorageClient([
+                        'keyFile' => json_decode($googleConfigFile, true)
+                    ]);
+                    $storageBucketName = config('googlecloud.storage_bucket');
+                    $bucket = $storage->bucket($storageBucketName);
+                    $photo = $request->file('photo');
+                    $image_path = $photo->getRealPath();
+                    $photo_name = auth()->user()->name . '-' . time() . '.' . $photo->extension();
+                    $fileSource = fopen($image_path, 'r');
+                    $newFolderName = 'cats';
+                    $googleCloudStoragePath = $newFolderName . '/' . $photo_name;
+                    $bucket->upload($fileSource, [
+                        'name' => $googleCloudStoragePath
+                    ]);
                 }
                 $cat = Cats::create([
                     'user_id' => $request->user()->id,
@@ -112,7 +124,7 @@ class CatController extends Controller
                     'ear_shape' => $request->ear_shape,
                     'weight' => $request->weight,
                     'age' => $request->age,
-                    'photo' => $path,
+                    'photo' => $googleCloudStoragePath,
                     'lat' => $request->lat,
                     'lon' => $request->lon,
                     'isWhite' => $request->isWhite,
