@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,12 +25,4 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
-});
-
-Route::get('/linkstorage', function () {
-    Artisan::call('storage:link');
-});
-
-Route::get('/migrateseed', function () {
-    Artisan::call('migrate:fresh --seed');
 });
