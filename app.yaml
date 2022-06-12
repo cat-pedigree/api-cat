@@ -1,0 +1,17 @@
+runtime: php81
+
+env_variables:
+## Put production environment variables here.
+  APP_KEY: base64:/LljjJoM0Xmhad/SNXS4CoEOm1pBboRc9eFU0F82ch4=
+  APP_STORAGE: /tmp
+  VIEW_COMPILED_PATH: /tmp
+  SESSION_DRIVER: cookie
+
+  DB_CONNECTION: mysql
+  DB_HOST: 34.101.43.245s
+  DB_PORT: 3306
+  DB_DATABASE: cat-pedigree
+  DB_USERNAME: cat-pedigree
+  DB_PASSWORD: cat-pedigre
+
+
