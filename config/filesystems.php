@@ -55,7 +55,14 @@ return [
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
         ],
-
+        'gcs' => [
+            'driver' => 'gcs',
+            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID', 'my-project-209405'),
+            'key_file' => env('GOOGLE_APPLICATION_CREDENTIALS', './flowing-silo-350506-e0fbc96d1dcf.json'), // optional: /path/to/service-account.json
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET', 'my-buckets'),
+            'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', null), // optional: /default/path/to/apply/in/bucket
+            'storage_api_uri' => env('GOOGLE_CLOUD_STORAGE_API_URI', 'https://storage.googleapis.com/my-buckets/'), // see: Public URLs below
+        ]
     ],
 
     /*
