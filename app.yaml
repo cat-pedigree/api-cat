@@ -12,6 +12,6 @@ env_variables:
   DB_PORT: 3306
   DB_DATABASE: cat-pedigree
   DB_USERNAME: cat-pedigree
-  DB_PASSWORD: cat-pedigre
+  DB_PASSWORD: cat-pedigree
 
 
