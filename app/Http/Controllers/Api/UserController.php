@@ -11,6 +11,7 @@ use Laravel\Fortify\Rules\Password;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Google\Cloud\Storage\StorageClient;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -214,11 +215,22 @@ class UserController extends Controller
             } else {
                 $user = User::find($request->user()->id);
                 if ($request->profile_photo_path && $request->profile_photo_path->isValid()) {
-                    $slug = Str::slug($request->user()->username);
-                    $fileName = $request->profile_photo_path->getClientOriginalName().'.' . $request->profile_photo_path->extension();
-                    $request->profile_photo_path->storeAs('public/profile-photos', $fileName);
-                    $path = "profile-photos/$fileName";
-                    $user->profile_photo_path = $path;
+                    $googleConfigFile = file_get_contents(config_path('flowing-silo-350506-e0fbc96d1dcf.json'));
+                    $storage = new StorageClient([
+                        'keyFile' => json_decode($googleConfigFile, true)
+                    ]);
+                    $storageBucketName = config('googlecloud.storage_bucket');
+                    $bucket = $storage->bucket($storageBucketName);
+                    $photo = $request->file('profile_photo_path');
+                    $image_path = $photo->getRealPath();
+                    $photo_name = auth()->user()->name . '-' . time() . '.' . $photo->extension();
+                    $fileSource = fopen($image_path, 'r');
+                    $newFolderName = 'users';
+                    $googleCloudStoragePath = $newFolderName . '/' . $photo_name;
+                    $bucket->upload($fileSource, [
+                        'name' => $googleCloudStoragePath
+                    ]);
+                    $user->profile_photo_path = $googleCloudStoragePath;
                 }
                 $user->update();
                 return ResponseFormatter::success($user, 'Profile Updated');
