@@ -53,17 +53,10 @@ class PostController extends Controller
     {
         try {
             $validation = Validator::make($request->all(), [
-                'photo' => ['required', 'image', 'mimes:jpeg,png,jpg,svg|max:2048'],
+                'photo' => ['required', 'image', 'mimes:jpeg,png,jpg,svg'],
                 'title' => ['required', 'string'],
                 'description' => ['required', 'string'],
             ]);
-
-            // $storage = new StorageClient([
-            //     'keyFilePath' => getcwd(). '/../flowing-silo-350506-e0fbc96d1dcf.json',
-            // ]);
-
-            // $bucketName = 'cat-pedigree-posts';
-            // $bucket = $storage->bucket($bucketName);
 
             if ($validation->fails()) {
                 $error = $validation->errors()->all()[0];
@@ -73,21 +66,25 @@ class PostController extends Controller
                 ], 'Failed to add data', 422);
             } else {
                 if ($request->photo && $request->photo->isValid()) {
-                    $slug = Str::slug($request->user()->username);
-                    $fileName = 'photo-' . $slug . '-' . time() . '.' . $request->photo->extension();
-                    $request->photo->storeAs('public/posts', $fileName);
-                    $path = "posts/$fileName";
-                    // $request = $bucket->upload(
-                    //     fopen($fileName, 'r'),
-                    //     [
-                    //         'predefinedAcl' => 'publicRead'
-                    //     ]
-                    // );
-                    // echo "File uploaded successfully. File path is: https://storage.googleapis.com/$bucketName/$fileName";
+                    $googleConfigFile = file_get_contents(config_path('flowing-silo-350506-e0fbc96d1dcf.json'));
+                    $storage = new StorageClient([
+                        'keyFile' => json_decode($googleConfigFile, true)
+                    ]);
+                    $storageBucketName = config('googlecloud.storage_bucket');
+                    $bucket = $storage->bucket($storageBucketName);
+                    $photo = $request->file('photo');
+                    $image_path = $photo->getRealPath();
+                    $photo_name = auth()->user()->name . '-' . time() . '.' . $photo->extension();
+                    $fileSource = fopen($image_path, 'r');
+                    $newFolderName = 'posts';
+                    $googleCloudStoragePath = $newFolderName . '/' . $photo_name;
+                    $bucket->upload($fileSource, [
+                        'name' => $googleCloudStoragePath
+                    ]);
                 }
                 $post = Post::create([
                     'user_id' => $request->user()->id,
-                    'photo' => $path,
+                    'photo' => $googleCloudStoragePath,
                     'title' => $request->title,
                     'description' => $request->description,
                 ]);
@@ -145,11 +142,22 @@ class PostController extends Controller
                         $post->title = $request->title;
                         $post->description = $request->description;
                         if ($request->photo && $request->photo->isValid()) {
-                            $slug = Str::slug($request->user()->username);
-                            $fileName = 'photo-' . $slug . '-' . time() . '.' . $request->photo->extension();
-                            $request->photo->storeAs('public/photos', $fileName);
-                            $path = "photos/$fileName";
-                            $post->photo = $path;
+                            $googleConfigFile = file_get_contents(config_path('flowing-silo-350506-e0fbc96d1dcf.json'));
+                            $storage = new StorageClient([
+                                    'keyFile' => json_decode($googleConfigFile, true)
+                                ]);
+                            $storageBucketName = config('googlecloud.storage_bucket');
+                            $bucket = $storage->bucket($storageBucketName);
+                            $photo = $request->file('photo');
+                            $image_path = $photo->getRealPath();
+                            $photo_name = auth()->user()->name . '-' . time() . '.' . $photo->extension();
+                            $fileSource = fopen($image_path, 'r');
+                            $newFolderName = 'posts';
+                            $googleCloudStoragePath = $newFolderName . '/' . $photo_name;
+                            $bucket->upload($fileSource, [
+                                'name' => $googleCloudStoragePath
+                            ]);
+                            $post->photo = $googleCloudStoragePath;
                         }
                         $post->update();
                         return ResponseFormatter::success(
